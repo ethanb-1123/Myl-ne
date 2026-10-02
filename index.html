@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonjour Mylène</title>
+<style>
+  :root {
+    --bg: #f2f6f5;
+    --panel: #ffffff;
+    --ink: #1e2e2e;
+    --muted: #64787a;
+    --line: #c7d6d3;
+    --accent: #2f6f73;
+    --accent-soft: #e4efec;
+    --accent-ink: #ffffff;
+    --error: #a63a2b;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11201f;
+      --panel: #16302e;
+      --ink: #e7f1ee;
+      --muted: #8fa9a6;
+      --line: #2f4e4a;
+      --accent: #7cc2bf;
+      --accent-soft: #1d3936;
+      --accent-ink: #0d1e1d;
+      --error: #f08a78;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2.5rem 1.25rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* motif médical discret : croix en filigrane */
+  .cross-mark {
+    position: fixed;
+    width: 220px; height: 220px;
+    opacity: .05;
+    pointer-events: none;
+    color: var(--accent);
+  }
+  .cross-mark.tl { top: -40px; left: -40px; }
+  .cross-mark.br { bottom: -50px; right: -50px; transform: rotate(18deg); }
+  @media (max-width: 560px) { .cross-mark { width: 140px; height: 140px; } }
+
+  main { width: 100%; max-width: 480px; position: relative; z-index: 1; }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: rise .5s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .screen.active { animation: none; } }
+
+  /* écran d'accueil */
+  #welcome { text-align: center; }
+  .pulse-wrap { margin: 0 auto 1.75rem; width: 220px; }
+  .pulse-line { width: 100%; height: 44px; display: block; color: var(--accent); }
+  .pulse-line path {
+    fill: none; stroke: currentColor; stroke-width: 2.5;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 260; stroke-dashoffset: 260;
+    animation: draw 1.4s ease forwards .2s;
+  }
+  @media (prefers-reduced-motion: reduce) { .pulse-line path { animation: none; stroke-dashoffset: 0; } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.4rem, 8vw, 3.6rem);
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin: 0 0 .9rem;
+  }
+  .tagline {
+    font-size: 1.05rem;
+    color: var(--muted);
+    margin: 0 0 2.5rem;
+  }
+  .tagline .choc { font-size: 1.15em; margin-right: .35em; }
+
+  .cta {
+    font: inherit; font-weight: 600; font-size: 1.05rem;
+    padding: .85rem 2.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--accent);
+    background: var(--accent); color: var(--accent-ink);
+    cursor: pointer;
+  }
+  .cta:hover { filter: brightness(1.05); }
+  .cta:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  /* écran de transcription */
+  .brand-row { display: flex; align-items: center; gap: .6rem; margin-bottom: 2rem; }
+  .brand-row svg { width: 28px; height: 28px; color: var(--accent); flex: none; }
+  .brand-row span {
+    font-family: var(--serif); font-size: 1.35rem; letter-spacing: -0.01em;
+  }
+
+  .drop {
+    display: block;
+    border: 2px dashed var(--line);
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+  }
+  .drop:hover, .drop.over, .drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .drop strong { display: block; font-size: 1.1rem; font-weight: 600; }
+  .drop span.hint { color: var(--muted); font-size: .95rem; }
+  .drop:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  .status { margin: 1.25rem 0 0; min-height: 1.5rem; color: var(--muted); display: flex; align-items: center; gap: .6rem; }
+  .status.error { color: var(--error); }
+  .spinner {
+    width: 1rem; height: 1rem; border-radius: 50%;
+    border: 2px solid var(--line); border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
+  .result { margin-top: 1.5rem; }
+  .result[hidden] { display: none; }
+  textarea {
+    width: 100%;
+    min-height: 260px;
+    resize: vertical;
+    padding: 1.1rem 1.25rem;
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    line-height: 1.65;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .actions { display: flex; gap: .75rem; margin-top: .9rem; }
+  button.action {
+    font: inherit; font-weight: 600;
+    padding: .7rem 1.3rem;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: var(--accent); color: var(--accent-ink);
+    cursor: pointer;
+  }
+  button.action.secondary { background: transparent; color: var(--accent); }
+  button.action:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+</style>
+</head>
+<body>
+
+<svg class="cross-mark tl" viewBox="0 0 100 100" aria-hidden="true"><path d="M40 0h20v40h40v20H60v40H40V60H0V40h40Z" fill="currentColor"/></svg>
+<svg class="cross-mark br" viewBox="0 0 100 100" aria-hidden="true"><path d="M40 0h20v40h40v20H60v40H40V60H0V40h40Z" fill="currentColor"/></svg>
+
+<main>
+
+  <section id="welcome" class="screen active">
+    <div class="pulse-wrap">
+      <svg class="pulse-line" viewBox="0 0 220 44" aria-hidden="true">
+        <path d="M0 22 H70 L85 8 L100 36 L112 22 H140 L150 4 L162 40 L172 22 H220" />
+      </svg>
+    </div>
+    <h1>Bonjour Mylène</h1>
+    <p class="tagline"><span class="choc">🍫</span>et c'est parti</p>
+    <button class="cta" id="start">Allons-y</button>
+  </section>
+
+  <section id="app" class="screen">
+    <div class="brand-row">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M40 0h20v40h40v20H60v40H40V60H0V40h40Z" fill="currentColor"/></svg>
+      <span>Bonjour Mylène</span>
+    </div>
+
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".mp3,.m4a,.wav,.ogg,.webm,.flac,.mp4,.mpga,.mpeg,audio/*">
+      <strong id="dropTitle">Dépose un fichier audio ici</strong>
+      <span class="hint" id="dropHint">MP3, M4A, WAV, OGG, WEBM, FLAC… (25 Mo maximum)</span>
+    </label>
+
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+
+    <section class="result" id="result" hidden>
+      <textarea id="text" aria-label="Texte transcrit"></textarea>
+      <div class="actions">
+        <button class="action" id="copy">Copier le texte</button>
+        <button class="action secondary" id="reset">Nouveau fichier</button>
+      </div>
+    </section>
+  </section>
+
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  $("start").addEventListener("click", () => {
+    $("welcome").classList.remove("active");
+    $("app").classList.add("active");
+    $("app").querySelector(".drop").focus?.();
+  });
+
+  const drop = $("drop"), fileInput = $("file"), statusEl = $("status");
+  const result = $("result"), textEl = $("text");
+  const MAX = 25 * 1024 * 1024;
+
+  function setStatus(msg, { error = false, loading = false } = {}) {
+    statusEl.className = "status" + (error ? " error" : "");
+    statusEl.innerHTML = "";
+    if (loading) { const s = document.createElement("div"); s.className = "spinner"; statusEl.append(s); }
+    if (msg) statusEl.append(document.createTextNode(msg));
+  }
+
+  async function handleFile(file) {
+    if (!file) return;
+    const ok = /\.(mp3|m4a|wav|ogg|webm|flac|mp4|mpga|mpeg)$/i.test(file.name);
+    if (!ok) return setStatus("Format non pris en charge (mp3, m4a, wav, ogg, webm, flac…).", { error: true });
+    if (file.size > MAX) return setStatus("Fichier trop lourd : 25 Mo maximum.", { error: true });
+
+    result.hidden = true;
+    $("dropTitle").textContent = file.name;
+    setStatus("Transcription en cours, cela peut prendre un moment…", { loading: true });
+
+    try {
+      const res = await fetch("/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "audio/mpeg", "X-Filename": encodeURIComponent(file.name) },
+        body: file,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "La transcription a échoué.");
+      textEl.value = data.text || "";
+      result.hidden = false;
+      setStatus(data.text ? "" : "Aucune parole détectée dans ce fichier.");
+    } catch (e) {
+      setStatus(e.message || "La transcription a échoué. Réessaie.", { error: true });
+    }
+  }
+
+  fileInput.addEventListener("change", () => handleFile(fileInput.files[0]));
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => handleFile(e.dataTransfer.files[0]));
+
+  $("copy").addEventListener("click", async () => {
+    const btn = $("copy");
+    try { await navigator.clipboard.writeText(textEl.value); }
+    catch { textEl.select(); document.execCommand("copy"); }
+    btn.textContent = "Copié";
+    setTimeout(() => (btn.textContent = "Copier le texte"), 1800);
+  });
+
+  $("reset").addEventListener("click", () => {
+    fileInput.value = "";
+    textEl.value = "";
+    result.hidden = true;
+    $("dropTitle").textContent = "Dépose un fichier audio ici";
+    setStatus("");
+  });
+</script>
+</body>
+</html>
